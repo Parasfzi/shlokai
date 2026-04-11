@@ -3,7 +3,7 @@ uvicorn[standard]
 sentence-transformers
 faiss-cpu
 numpy
-pydantic
+pydantic[email]
 httpx
 python-dotenv
 PyJWT

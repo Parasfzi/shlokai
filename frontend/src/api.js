@@ -1,10 +1,14 @@
 /* ─── API Configuration ─── */
 const getApiBase = () => {
-    // If running in production (Vercel), use VITE_API_BASE
+    // If explicitly set, use it
     if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
-    // If accessed from a phone on WiFi, dynamically use the PC's local IP!
-    if (window.location.hostname !== 'localhost') return `http://${window.location.hostname}:8000`;
-    return 'http://localhost:8000';
+    
+    // Local development
+    if (window.location.hostname === 'localhost') return 'http://localhost:8000';
+    if (window.location.hostname.startsWith('192.168')) return `http://${window.location.hostname}:8000`;
+    
+    // Production (Vercel) default
+    return 'https://parasfzi-shlokai-backend.hf.space';
 };
 
 const API_BASE = getApiBase();

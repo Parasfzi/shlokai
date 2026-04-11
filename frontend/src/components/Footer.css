@@ -1,0 +1,21 @@
+.app-footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 28px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.footer-text {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.footer-om {
+  color: var(--gold-700);
+  font-size: 0.9rem;
+}

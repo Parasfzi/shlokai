@@ -1,0 +1,92 @@
+.daily-banner {
+  background: linear-gradient(90deg, rgba(15,15,15,1) 0%, rgba(30,24,5,1) 50%, rgba(15,15,15,1) 100%);
+  border-bottom: 1px solid rgba(212,160,18,0.2);
+  padding: 12px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 100;
+}
+
+.daily-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1200px;
+}
+
+.daily-badge {
+  background: rgba(212,160,18,0.15);
+  color: var(--gold-400);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.daily-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.daily-sanskrit {
+  font-family: var(--font-sanskrit);
+  color: var(--gold-300);
+  margin-right: 8px;
+}
+
+.daily-translation {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.daily-reference {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.daily-close {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.daily-close:hover {
+  color: var(--gold-400);
+}
+
+@media (max-width: 768px) {
+  .daily-banner {
+    padding: 12px 30px 12px 16px;
+  }
+  .daily-banner-content {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center; /* Center align on mobile for better symmetry */
+  }
+  .daily-text {
+    text-align: center;
+  }
+  .daily-sanskrit {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 6px;
+  }
+  .daily-translation {
+    display: block;
+  }
+}

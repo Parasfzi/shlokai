@@ -1,0 +1,121 @@
+/* ─── API Configuration ─── */
+const getApiBase = () => {
+    // If running in production (Vercel), use VITE_API_BASE
+    if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
+    // If accessed from a phone on WiFi, dynamically use the PC's local IP!
+    if (window.location.hostname !== 'localhost') return `http://${window.location.hostname}:8000`;
+    return 'http://localhost:8000';
+};
+
+const API_BASE = getApiBase();
+
+/**
+ * Search sacred texts via backend API.
+ * Falls back to empty results on error.
+ */
+export async function searchVerses(query, topK = 5, mode = 'pure') {
+  try {
+    const response = await fetch(`${API_BASE}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: query,
+        top_k: topK,
+        mode,
+        enhance: true,   // Set to true once OPENROUTER_API_KEY is configured
+        smart_rank: true, // Set to true once OPENROUTER_API_KEY is configured
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('[API] Search failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check backend health.
+ */
+export async function checkHealth() {
+  try {
+    const response = await fetch(`${API_BASE}/health`);
+    return await response.json();
+  } catch {
+    return { status: 'offline' };
+  }
+}
+
+/* ─── Authentication & Bookmarks API ─── */
+
+function getAuthHeader() {
+  const token = localStorage.getItem('shlokai_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+export async function registerUser(email, password) {
+  const response = await fetch(`${API_BASE}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Registration failed');
+  }
+  return await response.json();
+}
+
+export async function loginUser(email, password) {
+  const response = await fetch(`${API_BASE}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Login failed');
+  }
+  return await response.json();
+}
+
+export async function addBookmark(chapter, verse) {
+  const response = await fetch(`${API_BASE}/bookmarks`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify({ chapter, verse }),
+  });
+  if (!response.ok) throw new Error('Failed to bookmark');
+  return await response.json();
+}
+
+export async function removeBookmark(chapter, verse) {
+  const response = await fetch(`${API_BASE}/bookmarks/${chapter}/${verse}`, {
+    method: 'DELETE',
+    headers: getAuthHeader(),
+  });
+  if (!response.ok) throw new Error('Failed to remove bookmark');
+  return await response.json();
+}
+
+export async function getBookmarks() {
+  const response = await fetch(`${API_BASE}/bookmarks`, {
+    headers: getAuthHeader(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch bookmarks');
+  return await response.json();
+}
+
+export async function getDailyShlok() {
+  const response = await fetch(`${API_BASE}/daily_shlok`);
+  if (!response.ok) throw new Error('Failed to fetch daily shlok');
+  return await response.json();
+}

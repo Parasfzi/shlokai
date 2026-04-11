@@ -1,0 +1,120 @@
+/* ─── Results Section ─── */
+.results-section {
+  position: relative;
+  z-index: 1;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  animation: fadeUp 0.45s var(--ease-out) forwards;
+}
+
+/* Results bar */
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.results-info {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.results-info strong {
+  color: var(--gold-400);
+  font-weight: 600;
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all var(--dur-fast) ease;
+}
+.clear-btn:hover {
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.03);
+}
+
+/* Results list */
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── States ─── */
+.state-loading,
+.state-error,
+.state-empty {
+  text-align: center;
+  padding: 72px 0;
+  animation: fadeUp 0.4s var(--ease-out) forwards;
+}
+
+/* Loader */
+.loader {
+  position: relative;
+  width: 60px; height: 60px;
+  margin: 0 auto 22px;
+}
+.loader-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--gold-500);
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+}
+.loader-om {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--gold-400);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.state-icon {
+  font-size: 2.5rem;
+  margin-bottom: 18px;
+  opacity: 0.6;
+}
+
+.state-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.state-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.state-text code {
+  background: rgba(255,255,255,0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .results-section { padding: 0 16px 60px; }
+  .results-list { gap: 18px; }
+}

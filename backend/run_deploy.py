@@ -3,7 +3,7 @@ import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    print(f"🚀 [Render Fix] Found PORT env variable: {port}. Attempting to start Uvicorn...")
+    print(f"🚀 [Render Fix] Found PORT env variable: {port}. Attempting to start Uvicorn...", flush=True)
     
     # Run the modern way, bypassing bash variable bugs on Render
     uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")

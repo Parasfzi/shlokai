@@ -34,11 +34,16 @@ engine_status = "loading"
 async def background_load_engine():
     global engine, engine_status
     try:
-        print("Initializing AI Models and FAISS in background...")
-        # Run synchronous blocking CPU/IO code in a thread so it doesn't freeze the async event loop
+        print("Waiting 5 seconds for Uvicorn to bind port before loading AI...", flush=True)
+        # Yield control back to Uvicorn event loop so it can bind the TCP port NOW.
+        # This prevents Render from timing out due to Python's GIL blocking the port bind!
+        await asyncio.sleep(5)
+        
+        print("Initializing AI Models and FAISS in background...", flush=True)
+        # Run synchronous blocking CPU/IO code in a thread
         engine = await asyncio.to_thread(GitaSearchEngine)
         engine_status = "ready"
-        print("Engine fully loaded and ready!")
+        print("Engine fully loaded and ready!", flush=True)
     except Exception as e:
         engine_status = f"error: {str(e)}"
         print(f"FAILED to load engine: {e}")

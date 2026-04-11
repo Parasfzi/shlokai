@@ -31,33 +31,25 @@ import asyncio
 engine: Optional[GitaSearchEngine] = None
 engine_status = "loading"
 
-async def background_load_engine():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global engine, engine_status
+    # Initialize the database and user tables
+    init_db()
+    print("=" * 50)
+    print("  ShlokAI v2 — Starting up on Hugging Face...")
+    print("=" * 50)
+    
     try:
-        print("Waiting 5 seconds for Uvicorn to bind port before loading AI...", flush=True)
-        # Yield control back to Uvicorn event loop so it can bind the TCP port NOW.
-        # This prevents Render from timing out due to Python's GIL blocking the port bind!
-        await asyncio.sleep(5)
-        
-        print("Initializing AI Models and FAISS in background...", flush=True)
-        # Run synchronous blocking CPU/IO code in a thread
-        engine = await asyncio.to_thread(GitaSearchEngine)
+        print("Initializing AI Models and FAISS...", flush=True)
+        # Hugging Face Spaces gives us plenty of startup time, so we load synchronously
+        engine = GitaSearchEngine()
         engine_status = "ready"
         print("Engine fully loaded and ready!", flush=True)
     except Exception as e:
         engine_status = f"error: {str(e)}"
         print(f"FAILED to load engine: {e}")
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Initialize the database and user tables
-    init_db()
-    print("=" * 50)
-    print("  ShlokAI v2 — Starting up...")
-    print("=" * 50)
-    
-    # Start engine load in background so port binds immediately (avoiding Render timeout)
-    asyncio.create_task(background_load_engine())
+        
     yield
     print("Shutting down...")
 

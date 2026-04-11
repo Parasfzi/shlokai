@@ -57,3 +57,7 @@ output_format_test.txt
 format_test.py
 apply_format.py
 test_fix.py
+
+# Binary model files (rebuilt in Docker)
+*.npy
+*.faiss

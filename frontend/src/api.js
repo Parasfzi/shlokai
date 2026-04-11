@@ -26,8 +26,8 @@ export async function searchVerses(query, topK = 5, mode = 'pure') {
         text: query,
         top_k: topK,
         mode,
-        enhance: true,   // Set to true once OPENROUTER_API_KEY is configured
-        smart_rank: true, // Set to true once OPENROUTER_API_KEY is configured
+        enhance: false,    // Disabled for speed — enable if you have a fast OpenRouter key
+        smart_rank: false,  // Disabled for speed — FAISS top result is already great
       }),
     });
 

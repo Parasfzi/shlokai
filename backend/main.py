@@ -25,19 +25,34 @@ from search_engine import GitaSearchEngine
 from ai_layers import enhance_query, smart_rank, explain_verse
 
 
+import asyncio
+
 # ─── Startup: load engine once ───────────────────────────────────────────────
 engine: Optional[GitaSearchEngine] = None
+engine_status = "loading"
 
+async def background_load_engine():
+    global engine, engine_status
+    try:
+        print("Initializing AI Models and FAISS in background...")
+        # Run synchronous blocking CPU/IO code in a thread so it doesn't freeze the async event loop
+        engine = await asyncio.to_thread(GitaSearchEngine)
+        engine_status = "ready"
+        print("Engine fully loaded and ready!")
+    except Exception as e:
+        engine_status = f"error: {str(e)}"
+        print(f"FAILED to load engine: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global engine
     # Initialize the database and user tables
     init_db()
     print("=" * 50)
     print("  ShlokAI v2 — Starting up...")
     print("=" * 50)
-    engine = GitaSearchEngine()
+    
+    # Start engine load in background so port binds immediately (avoiding Render timeout)
+    asyncio.create_task(background_load_engine())
     yield
     print("Shutting down...")
 
@@ -134,16 +149,13 @@ class SearchResponse(BaseModel):
 async def search_verses(request: SearchRequest):
     """
     Main search endpoint.
-
-    Flow:
-      1. (Optional) Layer 1: AI expands user query for richer semantic search.
-      2. FAISS retrieves top_k candidate verses.
-      3. (Optional) Layer 2: AI picks the single best verse from candidates.
-      4. (Optional) Layer 3: AI explains the chosen verse in Hinglish.
-
-    Strict guarantee: All returned content is sourced exclusively from the
-    Bhagavad Gita dataset. No content is generated from external knowledge.
     """
+    if engine is None:
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Engine is currently {engine_status}. Please wait a moment and try again."
+        )
+
     original_query = request.text.strip()
     enhanced = original_query  # default: no enhancement
 
@@ -216,7 +228,8 @@ async def health_check():
     return {
         "status": "ok",
         "version": "2.0.0",
-        "engine_loaded": engine is not None,
+        "engine_ready": engine is not None,
+        "engine_status": engine_status,
         "verses_indexed": len(engine.data) if engine else 0,
         "ai_layers": ["query_enhancement", "smart_ranking", "explain_mode"],
     }
@@ -260,6 +273,8 @@ async def add_bookmark(
     user_id: int = Depends(get_current_user_id),
     db: sqlite3.Connection = Depends(get_db)
 ):
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Search engine is still loading. Please try again in a moment.")
     # Verify verse exists in DB
     found = next((v for v in engine.data if v["chapter"] == bookmark.chapter and v["verse"] == bookmark.verse), None)
     if not found:
@@ -287,11 +302,10 @@ async def get_bookmarks(
     rows = cursor.fetchall()
     
     results = []
-    # Map DB constraints to actual verse text
+    # Map DB constraints to actual verse text (will skip translation if engine is still loading)
     for row in rows:
         ch, v_num = row["chapter"], row["verse"]
-        # Find verse content
-        verse = next((v for v in engine.data if v["chapter"] == ch and v["verse"] == v_num), None)
+        verse = next((v for v in engine.data if v["chapter"] == ch and v["verse"] == v_num), None) if engine else None
         if verse:
             results.append(BookmarkResponse(
                 id=row["id"],

@@ -72,6 +72,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://192.168.1.2:5173", # LAN Local testing
         "https://shlokai.paraspawar.in/"
+        "https://shlokai.vercel.app/"
     ], 
     allow_credentials=True,
     allow_methods=["*"],

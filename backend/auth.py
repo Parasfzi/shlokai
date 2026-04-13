@@ -9,6 +9,7 @@ import binascii
 import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import Header, HTTPException, status
+import resend
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_shlokai_gita_9999")
 ALGORITHM = "HS256"
@@ -123,33 +124,38 @@ def generate_reset_link(token: str) -> str:
 
 def send_reset_email(email: str, reset_link: str):
     """
-    Send password reset email to the user.
-    
-    Currently: Prints to console for testing.
-    Future: Integrate with Resend API.
-    
-    To integrate Resend later:
-    ─────────────────────────────
-    import resend
-    resend.api_key = os.getenv("RESEND_API_KEY")
-    
-    resend.Emails.send({
-        "from": "ShlokAI <noreply@shlokai.paraspawar.in>",
-        "to": email,
-        "subject": "🕉️ ShlokAI — Reset Your Password",
-        "html": f'''
-            <h2>Password Reset Request</h2>
-            <p>Click below to reset your ShlokAI password:</p>
-            <a href="{reset_link}" style="...">Reset Password</a>
-            <p>This link expires in 15 minutes.</p>
-        '''
-    })
-    ─────────────────────────────
+    Send password reset email to the user using Resend.
     """
-    print("\n" + "=" * 60)
-    print("  🕉️  ShlokAI — PASSWORD RESET EMAIL (CONSOLE)")
-    print("=" * 60)
-    print(f"  To:    {email}")
-    print(f"  Link:  {reset_link}")
-    print(f"  ⏰ Expires in {RESET_TOKEN_EXPIRE_MINUTES} minutes")
-    print("=" * 60 + "\n")
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
+        print("\n[WRN] RESEND_API_KEY missing. Printing reset link to console:")
+        print(f"To: {email} | Link: {reset_link}\n")
+        return
+
+    resend.api_key = api_key
+    
+    try:
+        resend.Emails.send({
+            "from": "ShlokAI <onboarding@resend.dev>",
+            "to": email,
+            "subject": "🕉️ ShlokAI — Reset Your Password",
+            "html": f"""
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #ffae00; text-align: center;">Reset Your Password</h2>
+                    <p>Namaste,</p>
+                    <p>You requested a password reset for your ShlokAI account. Click the button below to set a new password:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_link}" style="background-color: #ffae00; color: #000; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Reset Password</a>
+                    </div>
+                    <p>This link will expire in <strong>{RESET_TOKEN_EXPIRE_MINUTES} minutes</strong>.</p>
+                    <p>If you did not request this, please ignore this email.</p>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="font-size: 0.8rem; color: #888; text-align: center;">ShlokAI — Sacred Knowledge Search Engine</p>
+                </div>
+            """
+        })
+        print(f"[OK] Reset email sent to {email}")
+    except Exception as e:
+        print(f"[ERR] Failed to send email via Resend: {e}")
+        # Fallback to console so the user isn't stuck during testing
+        print(f"Fallback Link: {reset_link}")

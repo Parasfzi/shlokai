@@ -37,7 +37,7 @@ export default function Navbar({ onScriptureChange, onOpenAuth, onOpenBookmarks 
     <nav className="navbar" role="navigation" aria-label="Main navigation">
       <div className="nav-inner">
         <a href="/" className="nav-brand">
-          <img src="/om.png" alt="ShlokAI Logo" className="brand-logo" />
+          <img src="/logo.png" alt="ShlokAI Logo" className="brand-logo" />
           <span className="brand-name">
             Shlok<span className="brand-ai">AI</span>
           </span>

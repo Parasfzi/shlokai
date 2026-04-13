@@ -46,7 +46,7 @@ export default function ResetPassword() {
   return (
     <div className="reset-container">
       <div className="reset-card">
-        <div className="reset-header-icon">🕉️</div>
+        <div className="reset-header-icon"><img src="/logo.svg" alt="ShlokAI Logo" className="brand-logo" /></div>
         <h2>Reset Password</h2>
         <p className="reset-subtitle">Enter your new secure password below to restore access.</p>
 

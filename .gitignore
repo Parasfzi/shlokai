@@ -61,3 +61,7 @@ test_fix.py
 # Binary model files (rebuilt in Docker)
 *.npy
 *.faiss
+*.png
+*.jpg
+*.jpeg
+*.webp

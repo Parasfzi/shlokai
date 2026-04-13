@@ -123,3 +123,29 @@ export async function getDailyShlok() {
   if (!response.ok) throw new Error('Failed to fetch daily shlok');
   return await response.json();
 }
+
+export async function forgotPassword(email) {
+  const response = await fetch(`${API_BASE}/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Failed to send reset email');
+  }
+  return await response.json();
+}
+
+export async function resetPassword(token, newPassword) {
+  const response = await fetch(`${API_BASE}/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Password reset failed');
+  }
+  return await response.json();
+}

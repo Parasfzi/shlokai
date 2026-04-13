@@ -19,7 +19,10 @@ from search_engine import GitaSearchEngine
 from ai_layers import enhance_query, smart_rank, explain_verse
 from database import init_db, get_db
 import sqlite3
-from auth import hash_password, verify_password, create_access_token, get_current_user_id
+from auth import (
+    hash_password, verify_password, create_access_token, get_current_user_id,
+    create_reset_token, verify_reset_token, generate_reset_link, send_reset_email
+)
 
 from search_engine import GitaSearchEngine
 from ai_layers import enhance_query, smart_rank, explain_verse
@@ -83,6 +86,13 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user_id: int
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
 
 class BookmarkCreate(BaseModel):
     chapter: int
@@ -256,6 +266,60 @@ async def login_user(user: UserAuth, db: sqlite3.Connection = Depends(get_db)):
         
     access_token = create_access_token(data={"sub": str(row["id"])})
     return {"access_token": access_token, "token_type": "bearer", "user_id": row["id"]}
+
+
+# ─── PASSWORD RESET ENDPOINTS ─────────────────────────────────────────────────
+@app.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest, db: sqlite3.Connection = Depends(get_db)):
+    """
+    Step 1 of reset flow — user submits their email.
+    Always returns success to prevent email enumeration attacks.
+    """
+    cursor = db.cursor()
+    cursor.execute("SELECT id, email FROM users WHERE email = ?", (request.email,))
+    user = cursor.fetchone()
+    
+    if user:
+        # Generate a short-lived reset token with type="reset"
+        reset_token = create_reset_token(user_id=user["id"])
+        reset_link = generate_reset_link(reset_token)
+        
+        # For now: print to console (replace with Resend API later)
+        send_reset_email(email=user["email"], reset_link=reset_link)
+    
+    # SECURITY: Always return success even if email doesn't exist
+    # This prevents attackers from discovering which emails are registered
+    return {
+        "status": "success",
+        "message": "If an account exists with that email, a reset link has been sent."
+    }
+
+
+@app.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest, db: sqlite3.Connection = Depends(get_db)):
+    """
+    Step 2 of reset flow — user submits new password with reset token.
+    Token must be a valid, non-expired reset token (type="reset").
+    """
+    # verify_reset_token raises HTTPException if token is invalid/expired/wrong type
+    user_id = verify_reset_token(request.token)
+    
+    # Verify that the user still exists in database
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="User account no longer exists.")
+    
+    # Hash the new password and update in database
+    new_hash = hash_password(request.new_password)
+    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": "Password has been reset successfully. You can now log in."
+    }
 
 
 # ─── BOOKMARK ENDPOINTS ───────────────────────────────────────────────────────

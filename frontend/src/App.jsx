@@ -7,9 +7,14 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import BookmarksView from './components/BookmarksView';
 import DailyShlokBanner from './components/DailyShlokBanner';
+import ResetPassword from './pages/ResetPassword';
 import { searchVerses } from './api';
 import './App.css';
+
 export default function App() {
+  // Simple routing for password reset
+  const isResetPage = window.location.pathname === '/reset-password';
+  
   const [results, setResults] = useState(null);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,6 +68,15 @@ export default function App() {
       <>
         <AmbientCanvas />
         <BookmarksView onClose={() => setShowBookmarks(false)} />
+      </>
+    );
+  }
+
+  if (isResetPage) {
+    return (
+      <>
+        <AmbientCanvas />
+        <ResetPassword />
       </>
     );
   }

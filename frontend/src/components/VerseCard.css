@@ -228,3 +228,136 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── AI Explain Section ─── */
+.card-explain-section {
+  margin-top: 20px;
+  border-top: 1px solid rgba(212, 160, 18, 0.08);
+  padding-top: 16px;
+}
+
+.explain-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid rgba(212, 160, 18, 0.25);
+  border-radius: var(--radius-full);
+  color: var(--gold-400);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.25s ease;
+}
+
+.explain-btn:hover:not(:disabled) {
+  background: rgba(212, 160, 18, 0.08);
+  border-color: rgba(212, 160, 18, 0.5);
+  box-shadow: 0 0 12px rgba(212, 160, 18, 0.12);
+}
+
+.explain-btn.active {
+  border-color: rgba(212, 160, 18, 0.5);
+  background: rgba(212, 160, 18, 0.06);
+}
+
+.explain-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Explain Panel ─── */
+.explain-panel {
+  margin-top: 16px;
+  background: rgba(212, 160, 18, 0.03);
+  border: 1px solid rgba(212, 160, 18, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  animation: explainSlideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes explainSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.explain-section {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.explain-section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.explain-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.explain-icon {
+  font-size: 1rem;
+}
+
+.explain-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold-400);
+  opacity: 0.85;
+}
+
+.explain-content {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.85;
+  color: var(--text-secondary);
+  padding-left: 14px;
+  border-left: 2px solid rgba(212, 160, 18, 0.15);
+}
+
+/* ─── Loading State ─── */
+.explain-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.87rem;
+  padding: 8px 0;
+}
+
+.explain-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(212, 160, 18, 0.25);
+  border-top-color: var(--gold-400);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.explain-spinner.large {
+  width: 20px;
+  height: 20px;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Error State ─── */
+.explain-error {
+  font-size: 0.87rem;
+  color: rgba(255, 80, 80, 0.8);
+  padding: 6px 0;
+}

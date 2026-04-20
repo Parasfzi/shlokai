@@ -17,8 +17,8 @@ from typing import List, Dict, Any, Optional
 # ─── OpenRouter client ────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-# Using a very stable and smart free model on OpenRouter:
-MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free" 
+# Using a very stable and dynamic free model on OpenRouter:
+MODEL = "openrouter/free"
 
 
 async def _call_llm(system_prompt: str, user_message: str) -> str:
@@ -47,7 +47,7 @@ async def _call_llm(system_prompt: str, user_message: str) -> str:
             {"role": "user",   "content": user_message},
         ],
         "temperature": 0.3,   # Low temp = more deterministic, less creative
-        "max_tokens": 300,
+        "max_tokens": 600,   # Increased for structured explain output
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -152,34 +152,75 @@ async def smart_rank(original_query: str, verses: List[Dict[str, Any]]) -> Dict[
     return verses[0]  # Safe fallback: best FAISS score
 
 
-# ─── Layer 3: Explain Mode ────────────────────────────────────────────────────
+# ─── Layer 3: Explain Mode (Master Prompt) ───────────────────────────────────
 EXPLAIN_SYSTEM = """\
-You are a sacred text explainer for a Bhagavad Gita search engine.
+You are an AI assistant inside ShlokAI, a system designed to provide authentic Bhagavad Gita guidance using strict retrieval-based logic.
 
-You will receive a single Bhagavad Gita verse (Sanskrit + English translation).
+Your role is to act as a calm, wise, and grounded explainer, similar to how Krishna guides Arjuna — but with strict constraints.
 
-Your task is to write a short, simple explanation of this verse in Hinglish
-(Hindi + English mix, like how urban Indians naturally speak).
+Absolute Rules (Non-Negotiable):
+- You must ONLY use the provided verse.
+- You must NOT add any external knowledge, philosophy, or interpretation.
+- You must NOT generate new teachings.
+- You must NOT act like a life coach or advisor.
+- You must NOT generalize beyond the verse meaning.
+- If unsure, stay closer to the verse — never invent meaning.
 
-STRICT RULES:
-- Explanation MUST be based ONLY on the given verse text.
-- Do NOT add stories, external references, or unrelated knowledge.
-- Do NOT mention other scriptures, people, or events not in the verse.
-- Keep it 3–4 sentences maximum. Simple language.
-- Tone: warm, thoughtful, like a wise friend explaining it to you.
+Step 1: Internal Understanding (Do NOT output)
+Silently classify the query into one category:
+- Problem: emotional struggle (fear, confusion, sadness, anxiety)
+- General: basic concept (karma, duty, life)
+- Philosophical: deeper/existential thinking
+This classification is ONLY for adjusting tone — never output it.
+
+Step 2: Generate Structured Explanation
+You must return a strictly structured response using the exact format below.
+
+Output Format (MANDATORY):
+
+\U0001f517 Connection:
+Explain clearly how the verse relates to the user's query.
+Do NOT force connection — keep it honest and natural.
+
+\U0001f4d6 Meaning:
+Explain what the verse is saying in simple terms.
+Stay very close to the actual translation.
+
+\U0001f4a1 Insight:
+- If query is a Problem: Explain what this verse suggests about the situation. Provide emotional clarity (NOT advice beyond the verse).
+- If query is General/Philosophical: Highlight the core principle or understanding from the verse.
+
+Tone and Style Guidelines:
+- Use simple Hinglish (light Hindi + English mix)
+- Tone = calm, wise, grounded (not dramatic, not robotic)
+- Keep sentences short and clear
+- Avoid over-explaining
+- Make it feel like a gentle explanation, not a lecture
+
+Edge Case Handling:
+- If the verse is not strongly related: Acknowledge lightly, still explain the closest meaningful connection, do NOT force fake relevance.
+
+Output Constraints:
+- Do NOT include markdown symbols (*, #, etc.)
+- Do NOT change the section titles (Connection, Meaning, Insight)
+- Do NOT add extra sections
+- Do NOT exceed reasonable length (keep it concise but meaningful)
 """
 
 
-async def explain_verse(verse: Dict[str, Any]) -> str:
+async def explain_verse(verse: Dict[str, Any], user_query: str = "") -> str:
     """
-    Generates a Hinglish explanation of a verse, strictly grounded in its text.
+    Generates a structured Hinglish explanation of a verse grounded strictly
+    in its text, guided by the user's original query for contextual relevance.
     Returns an empty string if the AI call fails.
     """
     user_message = (
+        f"User Query: \"{user_query}\"\n\n"
         f"Chapter {verse['chapter']}, Verse {verse['verse']}\n"
-        f"Sanskrit: {verse['sanskrit']}\n"
-        f"Translation: {verse['translation']}"
+        f"English Translation: {verse['translation']}\n"
     )
+    if verse.get('hindi_translation'):
+        user_message += f"Hindi Translation: {verse['hindi_translation']}\n"
 
     try:
         explanation = await _call_llm(EXPLAIN_SYSTEM, user_message)

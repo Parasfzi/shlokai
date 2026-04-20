@@ -61,6 +61,7 @@ export default function ResultsSection({ results, query, loading, error, onClear
                 verse={verse}
                 index={i}
                 onAuthRequired={onAuthRequired}
+                searchQuery={query}
               />
             ))}
           </div>

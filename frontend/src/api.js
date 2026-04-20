@@ -149,3 +149,20 @@ export async function resetPassword(token, newPassword) {
   }
   return await response.json();
 }
+
+/**
+ * Fetch on-demand AI explanation for a specific verse.
+ * Uses the new Master Prompt — returns structured Connection/Meaning/Insight.
+ */
+export async function explainVerse(chapter, verse, query = '') {
+  const response = await fetch(`${API_BASE}/explain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chapter, verse, query }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Failed to get explanation');
+  }
+  return await response.json();
+}

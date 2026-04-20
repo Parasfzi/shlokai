@@ -1,13 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { explainVerse } from '../api';
 import './VerseCard.css';
 
-export default function VerseCard({ verse, index, onAuthRequired }) {
+export default function VerseCard({ verse, index, onAuthRequired, searchQuery }) {
   const cardRef = useRef(null);
   const [showHindi, setShowHindi] = useState(false);
+  const [showExplain, setShowExplain] = useState(false);
+  const [explainStatus, setExplainStatus] = useState('idle'); // idle, loading, done, error
+  const [explanation, setExplanation] = useState(null);
   const { isLoggedIn, isBookmarked, toggleBookmark } = useAuth();
   
   const bookmarked = isBookmarked(verse.chapter, verse.verse);
+
+  const handleExplain = async () => {
+    if (explanation) {
+      // Already fetched — just toggle visibility
+      setShowExplain(prev => !prev);
+      return;
+    }
+    setShowExplain(true);
+    setExplainStatus('loading');
+    try {
+      const data = await explainVerse(verse.chapter, verse.verse, searchQuery || '');
+      setExplanation(data.explanation);
+      setExplainStatus('done');
+    } catch (err) {
+      setExplainStatus('error');
+    }
+  };
+
+  // Parse structured explanation into 3 sections
+  const parseExplanation = (text) => {
+    const sections = [];
+    const markers = [
+      { key: 'connection', icon: '\uD83D\uDD17', label: 'Connection' },
+      { key: 'meaning',    icon: '\uD83D\uDCD6', label: 'Meaning' },
+      { key: 'insight',   icon: '\uD83D\uDCA1', label: 'Insight' },
+    ];
+    markers.forEach(({ icon, label }) => {
+      const regex = new RegExp(`${icon}\\s*${label}:\\s*([\\s\\S]*?)(?=${markers.map(m => m.icon).join('|')}|$)`, 'i');
+      const match = text.match(regex);
+      if (match) sections.push({ icon, label, content: match[1].trim() });
+    });
+    // Fallback: if parsing fails, return raw text
+    return sections.length ? sections : [{ icon: '\uD83D\uDD49\uFE0F', label: '', content: text }];
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -56,17 +94,16 @@ export default function VerseCard({ verse, index, onAuthRequired }) {
       {/* English Translation */}
       <p className="card-translation">{verse.translation}</p>
 
-      {/* Hindi Translation */}
-      {hasHindi && (
         <div className="card-hindi-section">
           <button
             className="hindi-toggle"
             onClick={() => setShowHindi(prev => !prev)}
             aria-expanded={showHindi}
           >
-            <span className="hindi-toggle-icon">{showHindi ? '▲' : '▼'}</span>
-            हिन्दी अनुवाद
+            <span className="hindi-toggle-icon">{showHindi ? '\u25b2' : '\u25bc'}</span>
+            {'\u0939\u093f\u0928\u094d\u0926\u0940 \u0905\u0928\u0941\u0935\u093e\u0926'}
           </button>
+
           {showHindi && (
             <p className="card-hindi-translation" lang="hi">
               {verse.hindi_translation}
@@ -74,6 +111,48 @@ export default function VerseCard({ verse, index, onAuthRequired }) {
           )}
         </div>
       )}
+
+      {/* AI Explain Button + Panel */}
+      <div className="card-explain-section">
+        <button
+          className={`explain-btn ${showExplain ? 'active' : ''}`}
+          onClick={handleExplain}
+          disabled={explainStatus === 'loading'}
+        >
+          {explainStatus === 'loading' ? (
+            <><span className="explain-spinner" /> Generating...</>           
+          ) : (
+            <>{showExplain && explanation ? '\u25b2 Hide Explanation' : '\u2728 Explain This Verse'}</>
+          )}
+        </button>
+
+        {showExplain && (
+          <div className="explain-panel">
+            {explainStatus === 'loading' && (
+              <div className="explain-loading">
+                <span className="explain-spinner large" />
+                <span>Krishna is thinking...</span>
+              </div>
+            )}
+            {explainStatus === 'error' && (
+              <p className="explain-error">Could not generate explanation. Please try again.</p>
+            )}
+            {explainStatus === 'done' && explanation && (
+              parseExplanation(explanation).map((section, i) => (
+                <div key={i} className="explain-section">
+                  {section.label && (
+                    <div className="explain-section-header">
+                      <span className="explain-icon">{section.icon}</span>
+                      <span className="explain-label">{section.label}</span>
+                    </div>
+                  )}
+                  <p className="explain-content">{section.content}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </article>
   );
 }

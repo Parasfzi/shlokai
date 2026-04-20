@@ -112,8 +112,8 @@ class SearchRequest(BaseModel):
     mode: Literal["pure", "explain"] = Field(
         default="pure",
         description=(
-            "'pure' → returns only the retrieved verse. "
-            "'explain' → adds a Hinglish explanation grounded in the verse."
+            "'pure' -> returns only the retrieved verse. "
+            "'explain' -> adds a Hinglish explanation grounded in the verse."
         )
     )
     top_k: int = Field(default=5, ge=1, le=20, description="FAISS candidates to retrieve")
@@ -125,6 +125,16 @@ class SearchRequest(BaseModel):
         default=True,
         description="If True, AI picks the single best verse from FAISS results."
     )
+
+class ExplainRequest(BaseModel):
+    chapter: int = Field(..., ge=1, le=18)
+    verse: int = Field(..., ge=1)
+    query: str = Field(default="", max_length=500, description="User's original search query for context")
+
+class ExplainResponse(BaseModel):
+    chapter: int
+    verse: int
+    explanation: str
 
 
 class VerseResult(BaseModel):
@@ -186,7 +196,7 @@ async def search_verses(request: SearchRequest):
     # ── Layer 3: Explain Mode ─────────────────────────────────────────────────
     explanation = None
     if request.mode == "explain":
-        explanation = await explain_verse(best_verse)
+        explanation = await explain_verse(best_verse, user_query=original_query)
 
     # ── Build response ────────────────────────────────────────────────────────
     result = VerseResult(
@@ -224,7 +234,7 @@ async def search_verses(request: SearchRequest):
     )
 
 
-# ─── GET /health ──────────────────────────────────────────────────────────────
+# ─── GET /health ──────────────────────────────────────────────────────────
 @app.get("/health")
 async def health_check():
     return {
@@ -235,6 +245,37 @@ async def health_check():
         "verses_indexed": len(engine.data) if engine else 0,
         "ai_layers": ["query_enhancement", "smart_ranking", "explain_mode"],
     }
+
+
+# ─── POST /explain ──────────────────────────────────────────────────────────
+@app.post("/explain", response_model=ExplainResponse)
+async def explain_a_verse(request: ExplainRequest):
+    """
+    On-demand explanation endpoint.
+    Frontend sends chapter + verse + original user query.
+    Returns a structured 3-section explanation grounded strictly in the verse.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Engine not ready. Please try again.")
+
+    # Look up the verse from the in-memory dataset
+    verse = next(
+        (v for v in engine.data if v["chapter"] == request.chapter and v["verse"] == request.verse),
+        None
+    )
+    if not verse:
+        raise HTTPException(status_code=404, detail=f"Verse {request.chapter}:{request.verse} not found.")
+
+    explanation = await explain_verse(verse, user_query=request.query)
+
+    if not explanation:
+        raise HTTPException(status_code=503, detail="AI explanation service is temporarily unavailable.")
+
+    return ExplainResponse(
+        chapter=request.chapter,
+        verse=request.verse,
+        explanation=explanation
+    )
 
 # ─── AUTHENTICATION ENDPOINTS ─────────────────────────────────────────────────
 @app.post("/register", response_model=TokenResponse)

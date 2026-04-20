@@ -54,7 +54,19 @@ async def _call_llm(system_prompt: str, user_message: str) -> str:
         response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        return data["choices"][0]["message"]["content"].strip()
+        
+        if "error" in data:
+            raise RuntimeError(f"OpenRouter Error: {data['error'].get('message', 'Unknown Error')}")
+            
+        choices = data.get("choices", [])
+        if not choices:
+            raise RuntimeError(f"No choices returned by LLM. Response: {data}")
+            
+        content = choices[0].get("message", {}).get("content")
+        if content is None:
+            raise RuntimeError(f"LLM returned empty content (None). Fast-failing.")
+            
+        return content.strip()
 
 
 # ─── Layer 1: Query Enhancement ──────────────────────────────────────────────

@@ -1,56 +1,98 @@
-# ShlokAI (Gita Guru AI) - System Architecture & Logic
+# 🕉️ ShlokAI — The Complete A to Z Guide
 
-This document provides a complete technical explanation of how **ShlokAI** works under the hood.
-
-## 1. Core Philosophy: Pure Retrieval, Zero Hallucination
-The fundamental principle of this project is to serve **100% authentic** Bhagavad Gita verses. Unlike standard generative AI chatbots (like ChatGPT) which can invent or hallucinate information, ShlokAI operates as a **Semantic Search Engine**.
-
-It does **not** generate new text. It only *retrieves* exact, verified data from a strictly curated JSON dataset.
-
-## 2. System Architecture
-
-The project is divided into three main pillars:
-1. **Data Pipeline & Vector Database (FAISS)**
-2. **Backend API (FastAPI)**
-3. **Frontend UI (React + Vite)**
+Welcome to the complete architectural and operational guide for **ShlokAI**. This document explains exactly what the project is, how it works under the hood, how the AI layers operate, and how requests flow from the user's browser to the sacred texts.
 
 ---
 
-### A. Data Pipeline & Vectorization (How the AI understands text)
-To allow a user to search for a concept (like *"fear of failure"*) and find a matching Sanskrit shlok, we use **Embeddings**.
+## 1. What is ShlokAI?
+ShlokAI is an intelligent, completely authentic "Semantic Search Engine" for the **Bhagavad Gita**. 
 
-1. **Curated Dataset (`final_gita.json`)**: 
-   A JSON file containing all 700 verses, organized by `chapter`, `verse`, `sanskrit`, and `translation`.
-2. **Generating Embeddings**: 
-   Using the `sentence-transformers` library (specifically the `all-MiniLM-L6-v2` model), we convert both the Sanskrit verse and its English translation into a high-dimensional mathematical vector (an array of numbers).
-3. **FAISS Index (`gita_index.faiss`)**: 
-   These vectors are stored in a FAISS (Facebook AI Similarity Search) index. FAISS is highly optimized for searching millions of vectors in milliseconds.
+Unlike standard AI chatbots (like ChatGPT) which can "hallucinate" or invent fake verses, ShlokAI operates on a strict **Retrieval-Augmented Logic**. It guarantees absolute authenticity because it **never generates verses**. It only retrieves pure, verified Sanskrit data from a curated dataset based on the user's emotional or philosophical query.
 
-### B. The Search Logic (How a search query works)
-When a user types a query like *"How to control my anger?"*:
+For example, if a user searches *"I am feeling lost and sad"*, ShlokAI doesn't just look for the words "lost" and "sad". It mathematically understands the concepts of grief and confusion, and brings back the exact verse where Lord Krishna guides Arjuna through a similar mental state.
 
-1. **Input Vectorization**: The backend takes the user's text and passes it to the exact same `sentence-transformer` model used during data preparation. This converts the user's string into a vector.
-2. **Similarity Search (L2 Distance)**: The FAISS index compares the user's vector against all 700 verse vectors. It calculates the "L2 Distance" (Euclidean distance) between them.
-3. **Fetching the Match**: The vectors with the lowest distance are mathematically the most semantically similar to the user's query. FAISS returns the `Index ID` of these top matches.
-4. **Data Retrieval**: The backend uses these `Index IDs` to fetch the exact Sanskrit verse and English translation from the `final_gita.json` array.
+---
 
-### C. Backend (FastAPI)
-The backend acts as the bridge:
-- It runs a high-performance Python server using **FastAPI**.
-- On startup, it loads the model and FAISS index into memory so that searches happen instantly.
-- It exposes a `POST /search` endpoint.
-- **Strict Mode**: If the closest match returned by FAISS has an unexpectedly high distance (meaning no verse actually matches the query well enough), the system can be configured to return *"No relevant shlok found"* rather than returning a random forced verse.
+## 2. System Architecture
+The project is built on a modern **Containerized Full-Stack Architecture**, separated into three massive pillars:
 
-### D. Frontend (React / Vite)
-- Built with React for a snappy, modern single-page experience.
-- Sends the user's query via an HTTP request to the FastAPI backend.
-- Renders the returned JSON (Chapter, Verse, Sanskrit, Translation) into beautiful, culturally themed UI cards.
+### A. The Vectors & Database Layer (`/final`)
+- **JSON Dataset (`final_gita.json`)**: Contains 700 verses of the Gita with Chapter, Verse Number, Sanskrit Text, English Translation (Swami Gambhirananda), and Hindi Translation (Swami Tejomayananda).
+- **FAISS Vector Database**: A highly optimized searching technology built by Facebook AI.
+- **SQLite Relational Database**: Handles User Accounts, Passwords (hashed), and Bookmarks.
 
-## 3. Summary of Technologies Used
-- **Sentence-Transformers (MiniLM)**: For semantic embeddings.
-- **FAISS**: For rapid vector-based similarity search.
-- **FastAPI**: For the backend REST API.
-- **React (Vite)**: For the frontend user interface.
-- **Pure CSS**: For lightweight, custom styling without heavy frameworks.
+### B. The Backend Layer (`/backend`)
+- **FastAPI (Python)**: An ultra-fast, modern backend framework.
+- **Sentence-Transformers**: A local Machine Learning model (`all-MiniLM-L6-v2`) loaded into memory to convert English queries into mathematical vectors instantly.
+- **OpenRouter (LLM Integration)**: Optionally used for advanced features like "Query Enhancement" and "Explain Mode".
+- **PyJWT & PBKDF2**: Handles secure JWT Bearer Tokens and secure password hashing algorithms.
+- **Resend API**: Handles automated email sending for Password resets.
 
-By relying on **Retrieval-Augmented Logic** without a generative step, ShlokAI guarantees the absolute sanctity, precision, and authenticity of the scriptures it serves.
+### C. The Frontend Layer (`/frontend`)
+- **React (Vite)**: The user interface, built for speed and a lightweight DOM.
+- **Pure CSS**: Designed with a custom "Glassmorphism" dark/gold premium aesthetic without relying on heavy UI frameworks like Tailwind.
+- **Interactive Modals**: Seamlessly handles searches, logins, and reading experiences dynamically without page reloads.
+
+---
+
+## 3. How a Shlok is Found (The Search Flow)
+Let's trace exactly what happens when a user types a query like *"karma and duty"*.
+
+### Step 1: Query Enhancement (AI Layer 1 - Optional)
+- User types *"karma and duty"*.
+- If `enhance_query` is enabled, the backend secretly sends this query to a large language model (LLM) via OpenRouter.
+- The LLM acts as an enhancer. It rewrites *"karma and duty"* into a much richer string: *"action without attachment, fulfilling responsibilities, duty driven by righteousness, Nishkama Karma."*
+- *Why?* Because richer context helps the mathematical search engine find better matches.
+
+### Step 2: Vectorization
+- The backend takes the query (or the enhanced query) and passes it to our local `SentenceTransformer` model.
+- The model translates the English text into a **high-dimensional mathematical vector** (an array of 384 floating-point numbers). This vector represents the "meaning" of the sentence.
+
+### Step 3: Semantic Search (FAISS)
+- Inside the RAM of the server sits the **FAISS Index**. This index contains the pre-calculated 384-dimensional vectors for all 700 verses of the Gita.
+- The backend compares the user's vector against all 700 verse vectors.
+- It calculates the **L2 Distance** (Euclidean distance). Vectors with the smallest distance have the closest semantic meaning.
+- FAISS instantly returns the `Index IDs` of the top 5 closest matches.
+
+### Step 4: Smart Ranking (AI Layer 2 - Optional)
+- The backend now has 5 highly relevant verses retrieved from the JSON dataset.
+- If `smart_rank` is enabled, the backend sends the user's original query and these 5 translations to the LLM.
+- The LLM acts as a divine scholar. It reads the 5 verses and strictly decides which **single** verse is the absolute best answer to the user's problem.
+
+### Step 5: Explain Mode (AI Layer 3 - Optional)
+- If the user requested an explanation, the backend sends the final chosen verse to the LLM.
+- The LLM returns a short, comforting Hinglish explanation directly tied to the retrieved Sanskrit. *Crucially, the LLM is only allowed to explain the retrieved text, not invent new text.*
+
+### Step 6: Delivery
+- The backend packages the Chapter, Verse, Sanskrit, English, Hindi, and Explanation into a clean JSON response and sends it back to the React UI, which renders it beautifully.
+
+---
+
+## 4. The Authentication System
+ShlokAI uses a completely stateless JWT authentication system.
+
+1. **Registration**: User provides an email and password. Backend uses `PBKDF2` with a unique salt to hash the password securely, then stores it in SQLite.
+2. **Login**: User provides credentials. Backend verifies the hash. If correct, it generates a securely signed **JWT (Json Web Token)** containing the `user_id`.
+3. **Authorization**: When the user tries to save a Bookmark, the React app attaches `Authorization: Bearer <token>` to the HTTP headers. FastAPI securely decodes this token to extract the user's identity.
+
+### Password Resets (The Forgot Password Flow)
+1. User enters their email in the UI.
+2. Backend generates a highly specific JWT token with `"type": "reset"` and a very short expiry (15 minutes).
+3. The Backend uses the **Resend API** to email the user a beautiful HTML link containing this token.
+4. User clicks the link, lands on the `ResetPassword` page in React, and enters a new password.
+5. The backend safely verifies the token, hashes the new password, and updates the database.
+
+---
+
+## 5. Deployment Architecture
+
+To ensure the absolute lowest latency and easiest maintenance:
+
+- **The Database & Backend**: The entire Python API, FAISS indices, datasets, and SQLite database are packaged into a single **Docker Container**. This container is deployed on **Hugging Face Spaces** (acting as your powerful server). Because everything lives locally inside the container (even the databases), responses remain lightning-fast.
+- **The Frontend**: The React application is built into static HTML/CSS/JS and deployed globally on the **Vercel Edge Network**. This ensures the website loads instantly for users anywhere in the world on a custom `.in` domain.
+
+---
+
+## Summary
+
+In short, ShlokAI brings ancient wisdom to the modern age by blending **Mathematical Vector Spaces** with **Large Language Models**, wrapped in a sleek, **Highly Secure Web Application**. It reads human problems, understands them semantically, targets the exact coordinate of that emotion within the Bhagavad Gita's 700 vectors, and delivers peace.

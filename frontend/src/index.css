@@ -123,8 +123,8 @@ ul, ol {
 
 /* ─── ANIMATIONS ─── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(22px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes fadeIn {
@@ -132,9 +132,19 @@ ul, ol {
   to   { opacity: 1; }
 }
 
+@keyframes fadeScale {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInBottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes pulseGlow {
   0%, 100% { filter: drop-shadow(0 0 6px rgba(212,160,18,0.3)); }
-  50%      { filter: drop-shadow(0 0 16px rgba(212,160,18,0.6)); }
+  50%       { filter: drop-shadow(0 0 18px rgba(212,160,18,0.7)); }
 }
 
 @keyframes spin {

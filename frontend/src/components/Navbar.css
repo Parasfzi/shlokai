@@ -4,13 +4,18 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  padding: 14px 24px;
-  background: rgba(6, 6, 10, 0.65);
-  backdrop-filter: blur(24px) saturate(1.3);
-  -webkit-backdrop-filter: blur(24px) saturate(1.3);
-  border-bottom: 1px solid var(--border-subtle);
   z-index: 999;
+  padding: 14px 24px;
+  background: rgba(6, 6, 10, 0.72);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border-bottom: 1px solid var(--border-subtle);
+  animation: navbarSlideDown 0.5s var(--ease-out) both;
+}
+
+@keyframes navbarSlideDown {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .nav-inner {
@@ -26,9 +31,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: opacity var(--dur-fast) ease;
+  transition: opacity var(--dur-fast) ease, transform 0.2s ease;
 }
-.nav-brand:hover { opacity: 0.8; }
+.nav-brand:hover { opacity: 0.8; transform: scale(1.02); }
 
 .brand-om {
   font-size: 1.6rem;
@@ -92,18 +97,20 @@
 
 .scripture-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
   min-width: 220px;
-  background: var(--bg-card);
+  background: rgba(18, 18, 28, 0.95);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   padding: 6px;
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 1px rgba(212,160,18,0.1);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-8px) scale(0.97);
-  transition: all var(--dur-normal) var(--ease-out);
+  transform: translateY(-12px) scale(0.95);
+  transform-origin: top right;
+  transition: opacity 0.25s var(--ease-out), transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), visibility 0.25s;
 }
 .scripture-dropdown.open {
   opacity: 1;
@@ -168,14 +175,22 @@
   font-size: 0.85rem;
   padding: 6px 16px;
   cursor: pointer;
-  transition: all var(--dur-fast) ease;
+  transition: all 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
   font-weight: 500;
+  position: relative;
+  overflow: hidden;
 }
 
 .auth-trigger:hover, .bookmarks-trigger:hover {
   background: var(--bg-card-hover);
   color: var(--gold-400);
   border-color: var(--gold-500);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.auth-trigger:active, .bookmarks-trigger:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .bookmarks-trigger {

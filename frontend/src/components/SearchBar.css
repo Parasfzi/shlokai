@@ -23,8 +23,8 @@
 /* Animate helper */
 .animate-fade-up {
   opacity: 0;
-  transform: translateY(18px);
-  animation: fadeUp 0.75s var(--ease-out) forwards;
+  transform: translateY(22px) scale(0.98);
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Tagline */
@@ -83,12 +83,17 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-xl);
-  transition: all var(--dur-normal) var(--ease-out);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
   box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.02);
 }
 .search-box:focus-within {
   border-color: var(--gold-600);
-  box-shadow: var(--shadow-card), 0 0 0 3px rgba(212,160,18,0.07), var(--shadow-glow);
+  background: rgba(20, 20, 30, 0.9);
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 4px rgba(212,160,18,0.08),
+    0 0 30px rgba(212,160,18,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .search-icon {
@@ -144,15 +149,18 @@
   font-size: 0.875rem;
   font-weight: 600;
   flex-shrink: 0;
-  transition: all var(--dur-fast) var(--ease-out);
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
   box-shadow: 0 2px 10px rgba(184,134,11,0.3);
 }
 .search-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
-  box-shadow: 0 4px 20px rgba(184,134,11,0.4);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(184,134,11,0.45);
+  transform: translateY(-2px) scale(1.02);
 }
-.search-btn:active { transform: translateY(0); }
+.search-btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(184,134,11,0.3);
+}
 .search-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ─── Chips ─── */
@@ -171,13 +179,17 @@
   font-size: 0.775rem;
   font-weight: 500;
   color: var(--text-muted);
-  transition: all var(--dur-fast) ease;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
 }
 .chip:hover {
   color: var(--gold-300);
   border-color: var(--border-gold);
   background: var(--gold-glow);
-  transform: translateY(-1px);
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.chip:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* ─── Responsive ─── */

@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAudio } from '../context/AudioContext';
 import { explainVerse } from '../api';
 import './VerseCard.css';
 
 export default function VerseCard({ verse, index, onAuthRequired, searchQuery }) {
   const cardRef = useRef(null);
-  const audioRef = useRef(null);
   const [showHindi, setShowHindi] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
-  const [explainStatus, setExplainStatus] = useState('idle'); // idle, streaming, done, error
+  const [explainStatus, setExplainStatus] = useState('idle');
   const [explanation, setExplanation] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
   const { isLoggedIn, isBookmarked, toggleBookmark } = useAuth();
-  
+  const { playVerse, currentVerse, isPlaying: globalPlaying } = useAudio();
+
+  // Is THIS card's verse the one currently playing?
+  const isPlaying = globalPlaying && currentVerse?.chapter === verse.chapter && currentVerse?.verse === verse.verse;
   const bookmarked = isBookmarked(verse.chapter, verse.verse);
 
   const handleExplain = async () => {
@@ -63,32 +65,11 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
     return sections.length ? sections : [{ icon: '\uD83D\uDD49\uFE0F', label: '', content: text }];
   };
 
-  // Audio playback logic
-  const toggleAudio = () => {
-    if (isPlaying) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
-    } else {
-      if (!audioRef.current) {
-        audioRef.current = new Audio(`/audio/verse_recitation/${verse.chapter}/${verse.verse}.mp3`);
-        audioRef.current.addEventListener('ended', () => setIsPlaying(false));
-      }
-      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-      setIsPlaying(true);
-    }
-  };
-
   useEffect(() => {
     const timer = setTimeout(() => {
       cardRef.current?.classList.add('visible');
     }, 100 * index);
-    return () => {
-      clearTimeout(timer);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
+    return () => clearTimeout(timer);
   }, [index]);
 
   const sanskritLines = verse.sanskrit.split('\n');
@@ -153,7 +134,7 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
       <div className="card-actions">
         <button 
           className={`play-btn ${isPlaying ? 'playing' : ''}`} 
-          onClick={toggleAudio}
+          onClick={() => playVerse(verse)}
           title="Play Sanskrit Recitation"
         >
           {isPlaying ? (

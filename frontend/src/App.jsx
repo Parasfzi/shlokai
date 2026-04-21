@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AudioProvider } from './context/AudioContext';
 import AmbientCanvas from './components/AmbientCanvas';
 import Navbar from './components/Navbar';
 import SearchBar from './components/SearchBar';
@@ -8,6 +9,7 @@ import AuthModal from './components/AuthModal';
 import BookmarksView from './components/BookmarksView';
 import DailyShlokBanner from './components/DailyShlokBanner';
 import ResetPassword from './pages/ResetPassword';
+import MiniPlayer from './components/MiniPlayer';
 import { searchVerses } from './api';
 import './App.css';
 
@@ -65,10 +67,11 @@ export default function App() {
 
   if (showBookmarks) {
     return (
-      <>
+      <AudioProvider>
         <AmbientCanvas />
         <BookmarksView onClose={() => setShowBookmarks(false)} />
-      </>
+        <MiniPlayer />
+      </AudioProvider>
     );
   }
 
@@ -82,7 +85,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <AudioProvider>
       <AmbientCanvas />
       <Navbar 
         onOpenAuth={() => setShowAuth(true)}
@@ -103,7 +106,8 @@ export default function App() {
       </main>
 
       <Footer />
+      <MiniPlayer />
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
-    </>
+    </AudioProvider>
   );
 }

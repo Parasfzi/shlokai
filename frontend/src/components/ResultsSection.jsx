@@ -1,5 +1,5 @@
 import './ResultsSection.css';
-import VerseCard from './VerseCard';
+import SwipeDeck from './SwipeDeck';
 
 export default function ResultsSection({ results, query, loading, error, onClear, onAuthRequired }) {
   if (!loading && !results && !error) return null;
@@ -38,7 +38,7 @@ export default function ResultsSection({ results, query, loading, error, onClear
         </div>
       )}
 
-      {/* RESULTS */}
+      {/* RESULTS — Swipe Deck */}
       {!loading && !error && results && results.length > 0 && (
         <>
           <div className="results-bar">
@@ -54,17 +54,11 @@ export default function ResultsSection({ results, query, loading, error, onClear
             </button>
           </div>
 
-          <div className="results-list">
-            {results.map((verse, i) => (
-              <VerseCard
-                key={`${verse.chapter}-${verse.verse}`}
-                verse={verse}
-                index={i}
-                onAuthRequired={onAuthRequired}
-                searchQuery={query}
-              />
-            ))}
-          </div>
+          <SwipeDeck
+            results={results}
+            query={query}
+            onAuthRequired={onAuthRequired}
+          />
         </>
       )}
     </section>

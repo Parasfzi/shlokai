@@ -97,7 +97,10 @@ export async function addBookmark(chapter, verse) {
     },
     body: JSON.stringify({ chapter, verse }),
   });
-  if (!response.ok) throw new Error('Failed to bookmark');
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('401 Unauthorized');
+    throw new Error('Failed to bookmark');
+  }
   return await response.json();
 }
 
@@ -106,7 +109,10 @@ export async function removeBookmark(chapter, verse) {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
-  if (!response.ok) throw new Error('Failed to remove bookmark');
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('401 Unauthorized');
+    throw new Error('Failed to remove bookmark');
+  }
   return await response.json();
 }
 
@@ -114,7 +120,10 @@ export async function getBookmarks() {
   const response = await fetch(`${API_BASE}/bookmarks`, {
     headers: getAuthHeader(),
   });
-  if (!response.ok) throw new Error('Failed to fetch bookmarks');
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('401 Unauthorized');
+    throw new Error('Failed to fetch bookmarks');
+  }
   return await response.json();
 }
 

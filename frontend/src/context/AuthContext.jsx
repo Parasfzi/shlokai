@@ -47,13 +47,21 @@ export function AuthProvider({ children }) {
   const toggleBookmark = async (chapter, verse) => {
     if (!token) return; // Must be logged in
 
-    if (isBookmarked(chapter, verse)) {
-      await removeBookmark(chapter, verse);
-      setBookmarks(prev => prev.filter(b => !(b.chapter === chapter && b.verse === verse)));
-    } else {
-      await addBookmark(chapter, verse);
-      // Optimistically reload
-      loadBookmarks();
+    try {
+      if (isBookmarked(chapter, verse)) {
+        await removeBookmark(chapter, verse);
+        setBookmarks(prev => prev.filter(b => !(b.chapter === chapter && b.verse === verse)));
+      } else {
+        await addBookmark(chapter, verse);
+        // Optimistically reload
+        loadBookmarks();
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.message.includes('401')) {
+        logout();
+        alert("Your session expired. Please log in again.");
+      }
     }
   };
 

@@ -9,6 +9,7 @@ load_dotenv()  # Load OPENROUTER_API_KEY from .env
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Literal
 from contextlib import asynccontextmanager
@@ -16,7 +17,7 @@ from datetime import datetime
 import random
 
 from search_engine import GitaSearchEngine
-from ai_layers import enhance_query, smart_rank, explain_verse
+from ai_layers import enhance_query, smart_rank, explain_verse, stream_explain_verse
 from database import init_db, get_db
 import sqlite3
 from auth import (
@@ -25,7 +26,7 @@ from auth import (
 )
 
 from search_engine import GitaSearchEngine
-from ai_layers import enhance_query, smart_rank, explain_verse
+from ai_layers import enhance_query, smart_rank, explain_verse, stream_explain_verse
 
 
 import asyncio
@@ -247,13 +248,12 @@ async def health_check():
     }
 
 
-# ─── POST /explain ──────────────────────────────────────────────────────────
-@app.post("/explain", response_model=ExplainResponse)
+# ─── POST /explain (STREAMING) ──────────────────────────────────────────────
+@app.post("/explain")
 async def explain_a_verse(request: ExplainRequest):
     """
-    On-demand explanation endpoint.
-    Frontend sends chapter + verse + original user query.
-    Returns a structured 3-section explanation grounded strictly in the verse.
+    On-demand streaming explanation endpoint.
+    Returns a text/event-stream of explanation chunks for real-time typewriter effect.
     """
     if engine is None:
         raise HTTPException(status_code=503, detail="Engine not ready. Please try again.")
@@ -266,15 +266,21 @@ async def explain_a_verse(request: ExplainRequest):
     if not verse:
         raise HTTPException(status_code=404, detail=f"Verse {request.chapter}:{request.verse} not found.")
 
-    explanation = await explain_verse(verse, user_query=request.query)
+    async def generate():
+        try:
+            async for chunk in stream_explain_verse(verse, user_query=request.query):
+                yield chunk
+        except Exception as e:
+            print(f"[Stream Error] {e}")
+            yield f"\n\n[Error: Could not generate explanation. Please try again.]"
 
-    if not explanation:
-        raise HTTPException(status_code=503, detail="AI explanation service is temporarily unavailable.")
-
-    return ExplainResponse(
-        chapter=request.chapter,
-        verse=request.verse,
-        explanation=explanation
+    return StreamingResponse(
+        generate(),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable Nginx buffering
+        }
     )
 
 # ─── AUTHENTICATION ENDPOINTS ─────────────────────────────────────────────────

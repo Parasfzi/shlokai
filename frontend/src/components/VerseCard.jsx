@@ -7,25 +7,39 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
   const cardRef = useRef(null);
   const [showHindi, setShowHindi] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
-  const [explainStatus, setExplainStatus] = useState('idle'); // idle, loading, done, error
-  const [explanation, setExplanation] = useState(null);
+  const [explainStatus, setExplainStatus] = useState('idle'); // idle, streaming, done, error
+  const [explanation, setExplanation] = useState('');
   const { isLoggedIn, isBookmarked, toggleBookmark } = useAuth();
   
   const bookmarked = isBookmarked(verse.chapter, verse.verse);
 
   const handleExplain = async () => {
-    if (explanation) {
-      // Already fetched — just toggle visibility
+    // If already fetched — just toggle visibility
+    if (explainStatus === 'done') {
       setShowExplain(prev => !prev);
       return;
     }
     setShowExplain(true);
-    setExplainStatus('loading');
+    setExplanation('');
+    setExplainStatus('streaming');
+
     try {
-      const data = await explainVerse(verse.chapter, verse.verse, searchQuery || '');
-      setExplanation(data.explanation);
+      const response = await explainVerse(verse.chapter, verse.verse, searchQuery || '');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        setExplanation(fullText);
+      }
+
       setExplainStatus('done');
     } catch (err) {
+      console.error('[Explain Stream Error]', err);
       setExplainStatus('error');
     }
   };
@@ -110,25 +124,25 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
             </p>
           )}
         </div>
-      )}
+      
 
       {/* AI Explain Button + Panel */}
       <div className="card-explain-section">
         <button
           className={`explain-btn ${showExplain ? 'active' : ''}`}
           onClick={handleExplain}
-          disabled={explainStatus === 'loading'}
+          disabled={explainStatus === 'streaming'}
         >
-          {explainStatus === 'loading' ? (
-            <><span className="explain-spinner" /> Generating...</>           
+          {explainStatus === 'streaming' ? (
+            <><span className="explain-spinner" /> Streaming...</>           
           ) : (
-            <>{showExplain && explanation ? '\u25b2 Hide Explanation' : '\u2728 Explain This Verse'}</>
+            <>{showExplain && explainStatus === 'done' ? '\u25b2 Hide Explanation' : '\u2728 Explain This Verse'}</>
           )}
         </button>
 
         {showExplain && (
           <div className="explain-panel">
-            {explainStatus === 'loading' && (
+            {explainStatus === 'streaming' && !explanation && (
               <div className="explain-loading">
                 <span className="explain-spinner large" />
                 <span>Krishna is thinking...</span>
@@ -137,18 +151,21 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
             {explainStatus === 'error' && (
               <p className="explain-error">Could not generate explanation. Please try again.</p>
             )}
-            {explainStatus === 'done' && explanation && (
-              parseExplanation(explanation).map((section, i) => (
-                <div key={i} className="explain-section">
-                  {section.label && (
-                    <div className="explain-section-header">
-                      <span className="explain-icon">{section.icon}</span>
-                      <span className="explain-label">{section.label}</span>
-                    </div>
-                  )}
-                  <p className="explain-content">{section.content}</p>
-                </div>
-              ))
+            {(explainStatus === 'streaming' || explainStatus === 'done') && explanation && (
+              <>
+                {parseExplanation(explanation).map((section, i) => (
+                  <div key={i} className="explain-section">
+                    {section.label && (
+                      <div className="explain-section-header">
+                        <span className="explain-icon">{section.icon}</span>
+                        <span className="explain-label">{section.label}</span>
+                      </div>
+                    )}
+                    <p className="explain-content">{section.content}</p>
+                  </div>
+                ))}
+                {explainStatus === 'streaming' && <span className="stream-cursor" />}
+              </>
             )}
           </div>
         )}

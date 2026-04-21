@@ -161,7 +161,8 @@ export async function resetPassword(token, newPassword) {
 
 /**
  * Fetch on-demand AI explanation for a specific verse.
- * Uses the new Master Prompt — returns structured Connection/Meaning/Insight.
+ * Returns the raw Response object — caller must consume the ReadableStream
+ * via response.body.getReader() for real-time typewriter rendering.
  */
 export async function explainVerse(chapter, verse, query = '') {
   const response = await fetch(`${API_BASE}/explain`, {
@@ -170,8 +171,8 @@ export async function explainVerse(chapter, verse, query = '') {
     body: JSON.stringify({ chapter, verse, query }),
   });
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.detail || 'Failed to get explanation');
+    const err = await response.text();
+    throw new Error(err || 'Failed to get explanation');
   }
-  return await response.json();
+  return response; // Return raw Response for stream consumption
 }

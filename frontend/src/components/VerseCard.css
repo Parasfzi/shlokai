@@ -361,3 +361,20 @@
   color: rgba(255, 80, 80, 0.8);
   padding: 6px 0;
 }
+
+/* ─── Streaming Cursor ─── */
+.stream-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--gold-400);
+  border-radius: 1px;
+  margin-left: 4px;
+  vertical-align: text-bottom;
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

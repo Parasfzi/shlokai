@@ -5,68 +5,209 @@ No hallucination. No external knowledge. Gita-only.
 
 Layer 1: Query Enhancement  — expands vague user queries
 Layer 2: Smart Ranking      — picks the single best verse from FAISS results
-Layer 3: Explain Mode       — explains the chosen verse in Hinglish
+Layer 3: Explain Mode       — explains the chosen verse in Hinglish (STREAMING)
 """
 
 import os
 import json
 import httpx
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, AsyncGenerator
 
 
-# ─── OpenRouter client ────────────────────────────────────────────────────────
+# ─── API Keys & Config ────────────────────────────────────────────────────────
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-# Using a very stable and dynamic free model on OpenRouter:
-MODEL = "openrouter/free"
+OPENROUTER_MODEL = "openrouter/free"
+
+# Gemini Native API (Free tier: 15 RPM, 1M TPM — more than enough)
+GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}"
+
+def _get_provider():
+    """Returns 'gemini' if native key is available, else 'openrouter'."""
+    if GEMINI_API_KEY:
+        return "gemini"
+    if OPENROUTER_API_KEY:
+        return "openrouter"
+    raise RuntimeError(
+        "No AI API key found. Set GEMINI_API_KEY (recommended) or "
+        "OPENROUTER_API_KEY in your .env file."
+    )
 
 
+# ─── Non-Streaming LLM Call (for Layer 1 & 2) ────────────────────────────────
 async def _call_llm(system_prompt: str, user_message: str) -> str:
     """
-    Generic async LLM call via OpenRouter.
+    Generic async LLM call. Prefers Gemini Native if key is set,
+    otherwise falls back to OpenRouter.
     Returns the model's reply as a plain string.
-    Raises RuntimeError if API key is missing or request fails.
     """
-    if not OPENROUTER_API_KEY:
-        raise RuntimeError(
-            "OPENROUTER_API_KEY environment variable not set. "
-            "Add it to your .env file or set it in your shell."
-        )
+    provider = _get_provider()
 
+    if provider == "gemini":
+        return await _call_gemini(system_prompt, user_message)
+    else:
+        return await _call_openrouter(system_prompt, user_message)
+
+
+async def _call_gemini(system_prompt: str, user_message: str) -> str:
+    """Direct call to Google Gemini API (non-streaming)."""
+    url = f"{GEMINI_URL}:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{"parts": [{"text": user_message}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 600,
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(url, json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+        candidates = data.get("candidates", [])
+        if not candidates:
+            raise RuntimeError(f"Gemini returned no candidates: {data}")
+
+        content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text")
+        if content is None:
+            raise RuntimeError("Gemini returned empty content.")
+
+        print(f"[LLM] Gemini ({GEMINI_MODEL}) responded successfully.")
+        return content.strip()
+
+
+async def _call_openrouter(system_prompt: str, user_message: str) -> str:
+    """Fallback call to OpenRouter (non-streaming)."""
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:5173",  # Required by OpenRouter
+        "HTTP-Referer": "http://localhost:5173",
         "X-Title": "ShlokAI",
     }
-
     payload = {
-        "model": MODEL,
+        "model": OPENROUTER_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_message},
         ],
-        "temperature": 0.3,   # Low temp = more deterministic, less creative
-        "max_tokens": 600,   # Increased for structured explain output
+        "temperature": 0.3,
+        "max_tokens": 600,
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        
+
         if "error" in data:
-            raise RuntimeError(f"OpenRouter Error: {data['error'].get('message', 'Unknown Error')}")
-            
+            raise RuntimeError(f"OpenRouter Error: {data['error'].get('message', 'Unknown')}")
+
         choices = data.get("choices", [])
         if not choices:
             raise RuntimeError(f"No choices returned by LLM. Response: {data}")
-            
+
         content = choices[0].get("message", {}).get("content")
         if content is None:
-            raise RuntimeError(f"LLM returned empty content (None). Fast-failing.")
-            
+            raise RuntimeError("LLM returned empty content (None).")
+
+        print(f"[LLM] OpenRouter ({OPENROUTER_MODEL}) responded successfully.")
         return content.strip()
+
+
+# ─── Streaming LLM Call (for Layer 3 Explain) ────────────────────────────────
+async def _stream_llm(system_prompt: str, user_message: str) -> AsyncGenerator[str, None]:
+    """
+    Async generator that yields text chunks as they arrive from the LLM.
+    Prefers Gemini Native streaming, falls back to OpenRouter SSE.
+    """
+    provider = _get_provider()
+
+    if provider == "gemini":
+        async for chunk in _stream_gemini(system_prompt, user_message):
+            yield chunk
+    else:
+        async for chunk in _stream_openrouter(system_prompt, user_message):
+            yield chunk
+
+
+async def _stream_gemini(system_prompt: str, user_message: str) -> AsyncGenerator[str, None]:
+    """Stream from Google Gemini Native API."""
+    url = f"{GEMINI_URL}:streamGenerateContent?alt=sse&key={GEMINI_API_KEY}"
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{"parts": [{"text": user_message}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 600,
+        },
+    }
+
+    print(f"[Stream] Starting Gemini stream ({GEMINI_MODEL})...")
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        async with client.stream("POST", url, json=payload) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                raw = line[6:]  # Strip "data: " prefix
+                if raw.strip() == "[DONE]":
+                    break
+                try:
+                    chunk_data = json.loads(raw)
+                    candidates = chunk_data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        for part in parts:
+                            text = part.get("text", "")
+                            if text:
+                                yield text
+                except json.JSONDecodeError:
+                    continue
+
+
+async def _stream_openrouter(system_prompt: str, user_message: str) -> AsyncGenerator[str, None]:
+    """Stream from OpenRouter using SSE (Server-Sent Events)."""
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:5173",
+        "X-Title": "ShlokAI",
+    }
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_message},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 600,
+        "stream": True,
+    }
+
+    print(f"[Stream] Starting OpenRouter stream ({OPENROUTER_MODEL})...")
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        async with client.stream("POST", OPENROUTER_URL, headers=headers, json=payload) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                raw = line[6:]
+                if raw.strip() == "[DONE]":
+                    break
+                try:
+                    chunk_data = json.loads(raw)
+                    choices = chunk_data.get("choices", [])
+                    if choices:
+                        delta = choices[0].get("delta", {})
+                        text = delta.get("content", "")
+                        if text:
+                            yield text
+                except json.JSONDecodeError:
+                    continue
 
 
 # ─── Layer 1: Query Enhancement ──────────────────────────────────────────────
@@ -222,9 +363,8 @@ Output Constraints:
 
 async def explain_verse(verse: Dict[str, Any], user_query: str = "") -> str:
     """
-    Generates a structured Hinglish explanation of a verse grounded strictly
-    in its text, guided by the user's original query for contextual relevance.
-    Returns an empty string if the AI call fails.
+    Non-streaming explanation (kept for backward compat with /search?mode=explain).
+    Returns the full explanation as a string.
     """
     user_message = (
         f"User Query: \"{user_query}\"\n\n"
@@ -241,3 +381,23 @@ async def explain_verse(verse: Dict[str, Any], user_query: str = "") -> str:
     except Exception as e:
         print(f"[AI Layer 3] Explain mode failed: {e}.")
         return ""
+
+
+async def stream_explain_verse(verse: Dict[str, Any], user_query: str = "") -> AsyncGenerator[str, None]:
+    """
+    STREAMING explanation — yields text chunks as the LLM generates them.
+    Used by the /explain endpoint for real-time typewriter effect.
+    """
+    user_message = (
+        f"User Query: \"{user_query}\"\n\n"
+        f"Chapter {verse['chapter']}, Verse {verse['verse']}\n"
+        f"English Translation: {verse['translation']}\n"
+    )
+    if verse.get('hindi_translation'):
+        user_message += f"Hindi Translation: {verse['hindi_translation']}\n"
+
+    print(f"[AI Layer 3] Starting streaming explanation for Ch.{verse['chapter']}:{verse['verse']}...")
+    async for chunk in _stream_llm(EXPLAIN_SYSTEM, user_message):
+        yield chunk
+    print(f"[AI Layer 3] Stream complete for Ch.{verse['chapter']}:{verse['verse']}.")
+

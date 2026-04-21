@@ -194,14 +194,43 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 640px) {
-  .hero { padding: calc(70px + 40px) 16px 32px; }
+  .hero {
+    padding: calc(70px + 32px) 16px 28px;
+    min-height: 55vh;
+  }
+  .hero.collapsed {
+    padding-top: calc(70px + 20px);
+    padding-bottom: 20px;
+  }
+  .hero-title {
+    font-size: clamp(1.45rem, 6vw, 2.2rem);
+    margin-bottom: 12px;
+  }
+  .hero-sub {
+    font-size: 0.875rem;
+    margin-bottom: 28px;
+  }
   .hero-sub br { display: none; }
-  .hero-sub { margin-bottom: 28px; }
-  .search-box { padding: 8px 8px 8px 14px; }
-  .search-input { font-size: 0.9rem; }
-  .search-btn { padding: 10px 16px; font-size: 0.8rem; }
+  .search-box {
+    padding: 8px 8px 8px 14px;
+    border-radius: var(--radius-lg);
+  }
+  .search-input { font-size: 1rem; } /* Prevent iOS auto-zoom (must be >= 16px) */
+  .mic-btn { display: none; }
+  .search-btn {
+    padding: 11px 16px;
+    font-size: 0.82rem;
+  }
+  .search-btn .btn-label { display: none; }
+  .chips {
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .chip { font-size: 0.72rem; padding: 5px 12px; }
+}
+
+/* Ultra small screens */
+@media (max-width: 360px) {
   .search-btn svg { display: none; }
-  .mic-btn { width: 32px; height: 32px; }
-  .chips { gap: 6px; }
-  .chip { font-size: 0.7rem; padding: 5px 12px; }
+  .search-btn:has(svg:only-child) { padding: 11px 14px; }
 }

@@ -127,3 +127,32 @@
   color: var(--gold-500);
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── Mobile ─── */
+@media (max-width: 640px) {
+  .swipe-deck-wrapper {
+    gap: 20px;
+    padding: 12px 0 80px; /* Extra bottom padding for MiniPlayer */
+  }
+  .swipe-deck {
+    max-width: 100%;
+  }
+  .deck-card-active {
+    cursor: default; /* Disable grab cursor on touch devices */
+  }
+  .deck-nav-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+  .deck-dot {
+    width: 9px;
+    height: 9px;
+  }
+  .deck-dot.active {
+    width: 26px;
+  }
+  .deck-hint span:first-child {
+    display: none; /* Hide text hint on mobile, counter is enough */
+  }
+}

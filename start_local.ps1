@@ -27,7 +27,7 @@ $backendCmd = "cd backend; `$env:PORT=8000; ..\venv\Scripts\python.exe run_deplo
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
 
 # Start Frontend
-$frontendCmd = "cd frontend; npm run dev"
+$frontendCmd = "cd frontend; npm run dev -- --host"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
 
 Write-Host ""

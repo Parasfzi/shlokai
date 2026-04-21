@@ -5,10 +5,12 @@ import './VerseCard.css';
 
 export default function VerseCard({ verse, index, onAuthRequired, searchQuery }) {
   const cardRef = useRef(null);
+  const audioRef = useRef(null);
   const [showHindi, setShowHindi] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
   const [explainStatus, setExplainStatus] = useState('idle'); // idle, streaming, done, error
   const [explanation, setExplanation] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
   const { isLoggedIn, isBookmarked, toggleBookmark } = useAuth();
   
   const bookmarked = isBookmarked(verse.chapter, verse.verse);
@@ -61,11 +63,32 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
     return sections.length ? sections : [{ icon: '\uD83D\uDD49\uFE0F', label: '', content: text }];
   };
 
+  // Audio playback logic
+  const toggleAudio = () => {
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    } else {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(`/audio/verse_recitation/${verse.chapter}/${verse.verse}.mp3`);
+        audioRef.current.addEventListener('ended', () => setIsPlaying(false));
+      }
+      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      setIsPlaying(true);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       cardRef.current?.classList.add('visible');
     }, 100 * index);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, [index]);
 
   const sanskritLines = verse.sanskrit.split('\n');
@@ -126,8 +149,20 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
         </div>
       
 
-      {/* AI Explain Button + Panel */}
-      <div className="card-explain-section">
+      {/* Actions: Play Audio + AI Explain */}
+      <div className="card-actions">
+        <button 
+          className={`play-btn ${isPlaying ? 'playing' : ''}`} 
+          onClick={toggleAudio}
+          title="Play Sanskrit Recitation"
+        >
+          {isPlaying ? (
+            <><span className="play-icon">⏸️</span> Pause</>
+          ) : (
+            <><span className="play-icon">▶️</span> Play Shlok</>
+          )}
+        </button>
+
         <button
           className={`explain-btn ${showExplain ? 'active' : ''}`}
           onClick={handleExplain}
@@ -139,7 +174,9 @@ export default function VerseCard({ verse, index, onAuthRequired, searchQuery })
             <>{showExplain && explainStatus === 'done' ? '\u25b2 Hide Explanation' : '\u2728 Explain This Verse'}</>
           )}
         </button>
+      </div>
 
+      <div className="card-explain-section">
         {showExplain && (
           <div className="explain-panel">
             {explainStatus === 'streaming' && !explanation && (
